@@ -37,7 +37,7 @@ class PIMPPacket(PacketType):                       #Packet Definitions
     ]
 
     def cal_checksum(self):
-        self.checkSum = b"0"
+        self.checkSum = b""
         GNByte = self.__serialize__()
         hash_value = hashlib.md5()
         hash_value.update(GNByte)
