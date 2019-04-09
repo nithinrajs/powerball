@@ -177,6 +177,14 @@ class PIMPProtocol(StackingProtocol):
         self.SeqNum = random.getrandbits(32)
         self.Client_seqNum = 0
 
+        self.ServerTxWindow = []
+        self.ClientTxWindow = []
+        self.TxWindowSize = 4000
+
+        self.ServerRxWindow = []
+        self.ClientRxWindow = []
+        self.RxWindowSize = 3000
+
     def sendSynAck(self, transport, seq, ack):
         synackpacket = self.pimppacket.SynAckPacket(seq, ack)   
         transport.write(synackpacket.__serialize__())
@@ -203,14 +211,19 @@ class PIMPProtocol(StackingProtocol):
 
     def server_send_data(self, transport, data):
         datapacket = self.pimppacket.DataPacket(self.SeqNum, self.Client_seqNum, data)
-        transport.write(datapacket.__serialize__())
+        if len(self.ServerTxWindow) <= self.TxWindowSize:
+            self.ServerTxWindow.append(datapacket)
+            transport.write(datapacket.__serialize__())
+
 
 
     def client_send_data(self, transport, data):
         datapacket = self.pimppacket.DataPacket(self.seqNum, self.Server_seqNum, data)
-        transport.write(datapacket.__serialize__())
-            #self.lowerTransport().write(datapacket.__serialize__())
+        if len(self.ClientTxWindow) <= self.TxWindowSize:
+            self.ClientTxWindow.append(datapacket)
+            transport.write(datapacket.__serialize__())
             
+
     def check_timeout(self):
         if self.resend_flag == True and self.Server_state == self.SER_SENT_SYNACK:
             self.sendSynAck(self.transport, self.SeqNum -1, self.Client_seqNum)
@@ -229,18 +242,6 @@ class PIMPTransport(StackingTransport):
         self.transport = transport
         self.protocol = Protocol
         
-    """def send_packet(self, pkt):
-        if length <= 1500:  
-            BUFF = data
-            self.lowerTransport().write(pkt.__serialize__())
-            print(BUFF)
-                
-        else:
-            BUFF = (pack(length, data))
-            #pkt.data = data
-            self.lowerTransport().write(pkt.__serialize__())
-            #print(BUFF)"""
-
     def pack(self,length, data): #Method to make packets and return it in a buffer
         PacketSize = 5
         leed = 0
@@ -255,12 +256,11 @@ class PIMPTransport(StackingTransport):
         return(TEMP_BUFF)
         
     def write(self, data):
-        #print("!@#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$%")
         #pkt = PIMPPacket()
         length = len(data)
         #print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!data!!!!!!!!!!!!!!!!"+ str(length) + "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"+ str(data))
         BUFF = []
-        TxWindow = 4000
+        
         global SC_flag
         
         if length <= 5:  #Temporary Size
@@ -269,7 +269,10 @@ class PIMPTransport(StackingTransport):
         
         else:
             BUFF = self.pack(length, data)
-            print(BUFF)	
+            print(BUFF)
+
+
+
 
         for d in BUFF: #### SEND DATA WITH DIFFERENT SEQ NUMBER FOR EACH PACKET SENT
             if SC_flag == "Server":
@@ -457,4 +460,5 @@ class PIMPClientProtocol(PIMPProtocol):
 
 PIMPClientFactory = StackingProtocolFactory.CreateFactoryType(lambda: PIMPClientProtocol())
 PIMPServerFactory = StackingProtocolFactory.CreateFactoryType(lambda: PIMPServerProtocol())
+
 
