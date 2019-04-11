@@ -179,7 +179,7 @@ class PIMPProtocol(StackingProtocol):
         self.Client_seqNum = 0
 
         self.keys = ["ACK", "SYN", "FIN", "RTR", "RST", "seqNum", "ackNum", "data"]
-        self.ServerTxBuffer = dict.fromkeys(self.keys,None)
+        
         self.ServerTxWindow = []
 
         
@@ -211,10 +211,12 @@ class PIMPProtocol(StackingProtocol):
         transport.write(rtrpacket.__serialize__())
 
     def server_send_data(self, transport, data):
+        ServerTxBuffer = {}
+        ServerTxBuffer = dict.fromkeys(self.keys,None)
         datapacket = self.pimppacket.DataPacket(self.SeqNum, self.Client_seqNum, data)
         transport.write(datapacket.__serialize__())
-        self.ServerTxBuffer.update(ACK=datapacket.ACK, SYN=datapacket.SYN, FIN=datapacket.FIN, RTR=datapacket.RTR, RST=datapacket.RST, seqNum=datapacket.seqNum, ackNum=datapacket.ackNum, data=datapacket.data)
-        self.ServerTxWindow.append(self.ServerTxBuffer)
+        ServerTxBuffer.update(ACK=datapacket.ACK, SYN=datapacket.SYN, FIN=datapacket.FIN, RTR=datapacket.RTR, RST=datapacket.RST, seqNum=datapacket.seqNum, ackNum=datapacket.ackNum, data=datapacket.data)
+        self.ServerTxWindow.append(ServerTxBuffer)
         print(self.ServerTxWindow)
         self.SeqNum = datapacket.ackNum  + len(datapacket.data)
         self.Client_seqNum = datapacket.seqNum
