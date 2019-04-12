@@ -209,7 +209,7 @@ class PIMPProtocol(StackingProtocol):
         rtrpacket = self.pimppacket.RtrPacket(seq,ack)
         transport.write(rtrpacket.__serialize__())
 
-    def processpktdata(self, transport, seq, ack, protocol):
+    def processpktdata(self, transport, seq, ack):
         """sendack = [x for x in self.ServerRxWindow if x["seqNum"] <= seq]
         for pkt in sendack:
             self.higherProtocol().data_received(pkt["data"])
@@ -396,7 +396,7 @@ class PIMPServerProtocol(PIMPProtocol):
                             #print("seq>> "+str(self.SeqNum))
                             #print("ack>> "+str(self.Client_seqNum))
                             #print("I am HERE jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj")
-                            self.processpktdata(self.transport, self.SeqNum, self.Client_seqNum, self)
+                            self.processpktdata(self.transport, self.SeqNum, self.Client_seqNum)
 
                     else:
                         print("!!!!SOMETHING!!!")
