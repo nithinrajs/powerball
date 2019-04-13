@@ -532,7 +532,7 @@ class PIMPClientProtocol(PIMPProtocol):
                 pass
         
         def client_fin_pkt(self, transport):
-            if(self.Server_state != self.CLI_CLOSING):
+            if(self.Client_state != self.CLI_CLOSING):
                 self.Client_state = self.CLI_CLOSING
                 self.higherProtocol().connection_lost(None)
             self.send_fin(transport, self.seqNum, self.Server_seqNum)
