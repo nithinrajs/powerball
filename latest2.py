@@ -268,7 +268,7 @@ class PIMPProtocol(StackingProtocol):
                 self.higherProtocol().data_received(pkt["data"])
                 self.SeqNum = pkt["ackNum"] 
                 self.Client_seqNum = pkt["seqNum"] + len(pkt["data"])
-                #self.send_Ack(self.transport, self.SeqNum, self.Client_seqNum)
+                self.send_Ack(self.transport, self.SeqNum, self.Client_seqNum)
                 pkt = ""
 
             elif pkt["seqNum"] < self.Client_seqNum:
