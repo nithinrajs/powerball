@@ -11,7 +11,6 @@ from playground.network.packet.fieldtypes import UINT16,UINT32,STRING,BUFFER,BOO
 
 SC_flag = "check"
 
-
 class Timer:                                        #Timer to check for timeouts
     def __init__(self, timeout, callback):
         self._timeout = timeout
@@ -83,7 +82,7 @@ class PIMPPacket(PacketType):                       #Packet Definitions
         pkt.ackNum = ack
         pkt.data = b''
         pkt.updateChecksum()
-        #print("!!!!!!!!!!!!!!!!!!!!!!!!SENT Ack !!!!!!!!!!!!!!!!" + "Seq="+str(pkt.seqNum) + "Ack="+str(pkt.ackNum)+ "      " + str(pkt.checkSum))
+        print("!!!!!!!!!!!!!!!!!!!!!!!!SENT Ack !!!!!!!!!!!!!!!!" + "Seq="+str(pkt.seqNum) + "Ack="+str(pkt.ackNum)+ "      " + str(pkt.checkSum))
         return pkt
 
     @classmethod
@@ -238,8 +237,34 @@ class PIMPProtocol(StackingProtocol):
         transport.write(finackpacket.__serialize__())
 
     def processpktdata(self, transport, seq, ack):
-        self.send_Ack(self.transport, seq, ack)
-        self.ServerRxWindow = [i for i in self.ServerRxWindow if i["seqNum"] > ack]
+        length1 =len(self.ServerRxWindow)
+        if len(self.ServerRxWindow) == 0:
+            #self.send_Ack(self.transport, seq, ack)
+            #self.ServerRxWindow = [i for i in self.ServerRxWindow if i["seqNum"] > ack]
+            pass
+
+        else:
+            print(self.ServerRxWindow)
+            print("length" + str(len(self.ServerRxWindow)))
+            while length1 > 0:
+                print("1<><><><><><><>")
+                pkt = self.ServerRxWindow.pop(0)
+                length1 -= 1
+                print("packet seq number = " + str(pkt["seqNum"]))
+                print("seq number = " + str(self.Client_seqNum))
+                if pkt["seqNum"] == self.Client_seqNum:
+                    print("!!!!!!!!!!!!!!!!!!!!1"+ str(pkt["data"]))
+                    self.higherProtocol().data_received(pkt["data"])
+                    self.SeqNum = pkt["ackNum"] 
+                    self.Client_seqNum = pkt["seqNum"] + len(pkt["data"])
+                    self.send_Ack(self.transport, self.SeqNum, self.Client_seqNum)
+                    #self.ServerRxWindow = [i for i in self.ServerRxWindow if i["seqNum"] > self.Client_seqNum]
+                else:
+                    print("@@@@@@@@@@@@@@@@")
+                    self.ServerRxWindow.append(pkt)
+                    self.ServerRxWindow = sorted(self.ServerRxWindow, key = lambda i: i['seqNum'])
+
+        
         """for i in self.ServerRxWindow:
             print("Removing >> "+ str(i))
             #print("\n")"""
@@ -250,6 +275,33 @@ class PIMPProtocol(StackingProtocol):
     def clientprocesspktdata(self, transport, seq, ack):
         self.send_Ack(self.transport, seq, ack)
         self.ClientRxWindow = [t for t in self.ClientRxWindow if t["seqNum"] > ack]
+
+        length1 =len(self.ClientRxWindow)
+        if len(self.ClientRxWindow) == 0:
+            #self.send_Ack(self.transport, seq, ack)
+            #self.ServerRxWindow = [i for i in self.ServerRxWindow if i["seqNum"] > ack]
+            pass
+
+        else:
+            print(self.ClientRxWindow)
+            print("length" + str(len(self.ClientRxWindow)))
+            while length1 > 0:
+                print("1<><><><><><><>")
+                pkt = self.ClientRxWindow.pop(0)
+                length1 -= 1
+                print("packet seq number = " + str(pkt["seqNum"]))
+                print("seq number = " + str(self.Server_seqNum))
+                if pkt["seqNum"] == self.Server_seqNum:
+                    print("!!!!!!!!!!!!!!!!!!!!1"+ str(pkt["data"]))
+                    self.higherProtocol().data_received(pkt["data"])
+                    self.seqNum = pkt["ackNum"] 
+                    self.Server_seqNum = pkt["seqNum"] + len(pkt["data"])
+                    self.send_Ack(self.transport, self.seqNum, self.Server_seqNum)
+                    #self.ServerRxWindow = [i for i in self.ServerRxWindow if i["seqNum"] > self.Client_seqNum]
+                else:
+                    print("@@@@@@@@@@@@@@@@")
+                    self.ClientRxWindow.append(pkt)
+                    self.ClientRxWindow = sorted(self.ClientRxWindow, key = lambda i: i['seqNum'])
         #print(self.ClientRxWindow)
         #for i in self.ClientRxWindow:
          #   print("Removing >> "+ str(i))
@@ -396,11 +448,15 @@ class PIMPServerProtocol(PIMPProtocol):
                         ServerRxBuffer = dict.fromkeys(self.keys,None)
                         ServerRxBuffer.update(ACK=pkt.ACK, SYN=pkt.SYN, FIN=pkt.FIN, RTR=pkt.RTR, RST=pkt.RST, seqNum=pkt.seqNum, ackNum=pkt.ackNum, data=pkt.data)
                         self.ServerRxWindow.append(ServerRxBuffer)
-                        self.SeqNum = pkt.ackNum 
-                        self.Client_seqNum = pkt.seqNum + len(pkt.data)
-                        self.higherProtocol().data_received(pkt.data)
+                        self.ServerRxWindow = sorted(self.ServerRxWindow, key = lambda i: i['seqNum'])
+                        
                         if len(self.ServerRxWindow) >= 1:
                             self.processpktdata(self.transport, self.SeqNum, self.Client_seqNum)
+                        #print(self.ServerRxWindow)
+
+                        """self.SeqNum = pkt.ackNum 
+                        self.Client_seqNum = pkt.seqNum + len(pkt.data)"""
+                        #self.higherProtocol().data_received(pkt.data)
 
                     elif pkt.SYN == False and pkt.ACK == True and self.Server_state == self.SER_ESTABLISHED:
                         self.SeqNum = pkt.ackNum
@@ -508,11 +564,16 @@ class PIMPClientProtocol(PIMPProtocol):
                         ClientRxBuffer = dict.fromkeys(self.keys,None)
                         ClientRxBuffer.update(ACK=pkt.ACK, SYN=pkt.SYN, FIN=pkt.FIN, RTR=pkt.RTR, RST=pkt.RST, seqNum=pkt.seqNum, ackNum=pkt.ackNum, data=pkt.data)
                         self.ClientRxWindow.append(ClientRxBuffer)
-                        self.seqNum = pkt.ackNum
+                        self.ClientRxWindow = sorted(self.ClientRxWindow, key = lambda i: i['seqNum'])
+                        
+                        if len(self.ClientRxWindow) >= 1:
+                            self.clientprocesspktdata(self.transport, self.seqNum, self.Server_seqNum)
+
+                        """self.seqNum = pkt.ackNum
                         self.Server_seqNum = pkt.seqNum + len(pkt.data)
                         self.higherProtocol().data_received(pkt.data)
                         if len(self.ClientRxWindow) >= 1:
-                            self.clientprocesspktdata(self.transport, self.seqNum, self.Server_seqNum)
+                            self.clientprocesspktdata(self.transport, self.seqNum, self.Server_seqNum)"""
 
 
                     elif pkt.SYN == False and pkt.ACK == True and self.Client_state == self.CLI_ESTABLISHED:
@@ -547,5 +608,4 @@ class PIMPClientProtocol(PIMPProtocol):
 
 PIMPClientFactory = StackingProtocolFactory.CreateFactoryType(lambda: PIMPClientProtocol())
 PIMPServerFactory = StackingProtocolFactory.CreateFactoryType(lambda: PIMPServerProtocol())
-
 
