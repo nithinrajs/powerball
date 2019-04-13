@@ -300,7 +300,6 @@ class PIMPTransport(StackingTransport):
         self.finpacket = finpacket
 
     def close(self):
-        print("here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         self.finpacket(self.transport)
 
         
@@ -372,6 +371,13 @@ class PIMPServerProtocol(PIMPProtocol):
                         self.SeqNum += 1
                         self.Server_state = self.SER_SENT_SYNACK
 
+                    elif pkt.SYN == True and pkt.ACK == False and self.Server_state == self.SER_SENT_SYNACK:
+                        self.sendSynAck(self.transport, self.SeqNum, self.Client_seqNum)
+                        self.resend_flag = True
+                        timer = Timer(3, self.check_timeout)
+                        self.SeqNum += 1
+                        self.Server_state = self.SER_SENT_SYNACK
+
                     elif pkt.SYN == False and pkt.ACK == True and self.Server_state == self.SER_SENT_SYNACK:
                         if self.SeqNum == pkt.ackNum and self.Client_seqNum == pkt.seqNum:
                             self.resend_flag = False
@@ -413,6 +419,9 @@ class PIMPServerProtocol(PIMPProtocol):
 
                     elif pkt.ACK == True and self.Server_state == self.SER_CLOSING:
                         self.transport.close()
+
+                    elif pkt.RST == True:
+                        self.Server_state = self.LISTEN
 
                     else:
                         print("Something!!!!!!!!!!") 
@@ -485,12 +494,14 @@ class PIMPClientProtocol(PIMPProtocol):
                             #################################################################################
                             pimp_transport = PIMPTransport(self.transport,self.client_send_data, self.client_fin_pkt)
                             self.higherProtocol().connection_made(pimp_transport)
-                            print("!!!!!!!!!!!Client Connection Established!!!!!!!!!!!!!!!!!!!")
+                            #print("!!!!!!!!!!!Client Connection Established!!!!!!!!!!!!!!!!!!!")
 
                         elif self.seqNum != pkt.ackNum:
                             self.Server_seqNum = pkt.seqNum + 1
+                            self.seqNum = pkt.ackNum
                             self.send_rst(self.transport, self.seqNum, self.Server_seqNum)
                             self.Client_state = self.CLI_INITIAL
+                            self.connection_made(self.transport)
 
                     elif pkt.SYN == False and pkt.ACK == False and self.Client_state == self.CLI_ESTABLISHED and pkt.data != 0:
                         ClientRxBuffer = {}
@@ -523,7 +534,11 @@ class PIMPClientProtocol(PIMPProtocol):
                         self.transport.close()    
 
                     else:
-                        print("I am here")
+                        self.Server_seqNum = pkt.seqNum + 1
+                        self.seqNum = pkt.ackNum
+                        self.send_rst(self.transport, self.seqNum, self.Server_seqNum)
+                        self.Client_state = self.CLI_INITIAL
+                        self.connection_made(self.transport)
 
                 else:
                     self.send_rtr(self.transport, self.seqNum, self.Server_seqNum)
