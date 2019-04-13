@@ -237,30 +237,32 @@ class PIMPProtocol(StackingProtocol):
         transport.write(finackpacket.__serialize__())
 
     def processpktdata(self, transport, seq, ack):
-        print("<><><><><><><>")
-        print(self.ServerRxWindow)
+        length1 =len(self.ServerRxWindow)
         if len(self.ServerRxWindow) == 0:
             #self.send_Ack(self.transport, seq, ack)
             #self.ServerRxWindow = [i for i in self.ServerRxWindow if i["seqNum"] > ack]
             pass
 
         else:
-            for element in self.ServerRxWindow:
-                print("<><><><><><><>")
-                print("<><><><><><><>")
-                pkt = self.ServerRxWindow.pop()
-                print(pkt["seqNum"])
-                if pkt["seqNum"] == ack:
+            print(self.ServerRxWindow)
+            print("length" + str(len(self.ServerRxWindow)))
+            while length1 > 0:
+                print("1<><><><><><><>")
+                pkt = self.ServerRxWindow.pop(0)
+                length1 -= 1
+                print("packet seq number = " + str(pkt["seqNum"]))
+                print("seq number = " + str(self.Client_seqNum))
+                if pkt["seqNum"] == self.Client_seqNum:
                     print("!!!!!!!!!!!!!!!!!!!!1"+ str(pkt["data"]))
                     self.higherProtocol().data_received(pkt["data"])
                     self.SeqNum = pkt["ackNum"] 
                     self.Client_seqNum = pkt["seqNum"] + len(pkt["data"])
                     self.send_Ack(self.transport, self.SeqNum, self.Client_seqNum)
-                    self.ServerRxWindow = [i for i in self.ServerRxWindow if i["seqNum"] > self.Client_seqNum]
+                    #self.ServerRxWindow = [i for i in self.ServerRxWindow if i["seqNum"] > self.Client_seqNum]
                 else:
                     print("@@@@@@@@@@@@@@@@")
                     self.ServerRxWindow.append(pkt)
-                    self.ServerRxWindow = sorted(self.ServerRxWindow, key = lambda i: i['seqNum'],reverse=True)
+                    self.ServerRxWindow = sorted(self.ServerRxWindow, key = lambda i: i['seqNum'])
 
         
         """for i in self.ServerRxWindow:
@@ -419,11 +421,8 @@ class PIMPServerProtocol(PIMPProtocol):
                         ServerRxBuffer = dict.fromkeys(self.keys,None)
                         ServerRxBuffer.update(ACK=pkt.ACK, SYN=pkt.SYN, FIN=pkt.FIN, RTR=pkt.RTR, RST=pkt.RST, seqNum=pkt.seqNum, ackNum=pkt.ackNum, data=pkt.data)
                         self.ServerRxWindow.append(ServerRxBuffer)
-                        for r in self.ServerRxWindow:
-                            print(r)
-                            print("\n")
-                        self.ServerRxWindow = sorted(self.ServerRxWindow, key = lambda i: i['seqNum'],reverse=True)
-                        print(self.ServerRxWindow)
+                        self.ServerRxWindow = sorted(self.ServerRxWindow, key = lambda i: i['seqNum'])
+                        #print(self.ServerRxWindow)
 
                         """self.SeqNum = pkt.ackNum 
                         self.Client_seqNum = pkt.seqNum + len(pkt.data)"""
@@ -576,5 +575,4 @@ class PIMPClientProtocol(PIMPProtocol):
 
 PIMPClientFactory = StackingProtocolFactory.CreateFactoryType(lambda: PIMPClientProtocol())
 PIMPServerFactory = StackingProtocolFactory.CreateFactoryType(lambda: PIMPServerProtocol())
-
 
