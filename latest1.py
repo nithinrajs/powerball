@@ -273,8 +273,8 @@ class PIMPProtocol(StackingProtocol):
          #   print("Server Rx Currently Emptied\n")
 
     def clientprocesspktdata(self, transport, seq, ack):
-        self.send_Ack(self.transport, seq, ack)
-        self.ClientRxWindow = [t for t in self.ClientRxWindow if t["seqNum"] > ack]
+        """self.send_Ack(self.transport, seq, ack)
+        self.ClientRxWindow = [t for t in self.ClientRxWindow if t["seqNum"] > ack]"""
 
         length1 =len(self.ClientRxWindow)
         if len(self.ClientRxWindow) == 0:
