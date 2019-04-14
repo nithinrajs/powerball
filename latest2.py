@@ -21,7 +21,7 @@ class Timer:                                        #Timer to check for timeouts
         await asyncio.sleep(self._timeout)
         await self._callback()
 
-class Timer2:                                        #Timer to check for timeouts
+class Timer2:                                        #Timer to check for 
     def __init__(self, timeout, callback, param):
         self._timeout = timeout
         self._callback = callback
@@ -308,20 +308,20 @@ class PIMPProtocol(StackingProtocol):
             for repkt in self.ServerTxWindow:
                 datapacket = self.pimppacket.DataPacket(repkt["seqNum"], repkt["ackNum"], repkt["data"])
                 transport.write(datapacket.__serialize__())
-                print("Sent Server Resend!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                #print("Sent Server Resend!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-        else:
-            print("<><><><><><>EMPTY BUFFER<><><><><><><><><><")
+        #else:
+            #print("<><><><><><>EMPTY BUFFER<><><><><><><><><><")
 
     def client_resend_data(self, transport):
         if len(self.ClientTxWindow) != 0:
             for repkt in self.ClientTxWindow:
                 datapacket = self.pimppacket.DataPacket(repkt["seqNum"], repkt["ackNum"], repkt["data"])
                 transport.write(datapacket.__serialize__())
-                print("Sent Cleint REsend!!!!!!!!!!!!!!!!!!!!!111")
+                #print("Sent Cleint REsend!!!!!!!!!!!!!!!!!!!!!111")
 
-        else:
-            print("<><><><><><>EMPTY BUFFER<><><><><><><><><><")
+        #else:
+         #   print("<><><><><><>EMPTY BUFFER<><><><><><><><><><")
 
     def server_send_data(self, transport, data):
         ServerTxBuffer = {}
@@ -360,7 +360,7 @@ class PIMPTransport(StackingTransport):
 
         
     def pack(self,length, data):
-        PacketSize = 4000
+        PacketSize = 1500
         leed = 0
         end = PacketSize
         TEMP_BUFF = []
@@ -377,7 +377,7 @@ class PIMPTransport(StackingTransport):
         BUFF = []
         global SC_flag
         
-        if length <= 4000: 
+        if length <= 1500: 
             self.send_data(self.transport, data)
         
         else:
